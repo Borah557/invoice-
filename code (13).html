@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator Pro</title>
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- PREVIOUS CSS STYLES (truncated for brevity - paste full CSS here) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+        /* ... (Paste ALL CSS from the previous combined example here) ... */
+
+        /* --- NEW CSS FOR SUBSCRIPTION MODAL --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px; /* Maximum width */
+            border-radius: 8px;
+            text-align: center;
+            position: relative; /* For close button positioning */
+        }
+
+        .modal-close {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        #qrcode {
+            margin: 20px auto;
+            width: 200px; /* Adjust size as needed */
+            height: 200px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+        }
+         #qrcode img { /* Ensure image fills container if library uses img */
+             display: block;
+             width: 100%;
+             height: 100%;
+         }
+
+        .modal-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+         .modal-content p {
+             margin-bottom: 15px;
+             line-height: 1.5;
+         }
+         .modal-content strong {
+             font-weight: 700;
+             color: var(--text-color);
+         }
+
+        /* Button to open modal */
+        #subscribeBtn {
+            background-color: #e67e22; /* Orange */
+            color: white;
+            margin-top: 15px;
+            display: block; /* Make it full width */
+            width: 100%;
+             max-width: 300px; /* Limit width */
+             margin-left: auto;
+             margin-right: auto;
+        }
+        #subscribeBtn:hover {
+             background-color: #d35400;
+        }
+
+        /* Style for "I Have Paid" button */
+        #paidConfirmationBtn {
+             background-color: var(--success-color);
+             color: white;
+             margin-top: 20px;
+        }
+         #paidConfirmationBtn:hover {
+              background-color: #3bcba8;
+         }
+
+        /* --- END NEW CSS --- */
+    </style>
+</head>
+<body>
+
+    <div class="invoice-app">
+
+        <!-- ** WARNING: Subscription Required ** (Show if not subscribed - controlled by JS) -->
+        <div id="subscriptionNag" style="display: none; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+            Please <button type="button" id="subscribeLinkBtn" style="background:none;border:none;color:#007bff;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;">subscribe</button> for full access (₹199/month). This is a demo - payment verification is NOT real.
+        </div>
+
+        <h1>Invoice Generator Pro <i class="fas fa-star" style="color: #f1c40f;"></i></h1>
+
+        <form id="invoice-form">
+            <!-- ... (Paste ALL HTML form sections from previous example here) ... -->
+             <section class="company-details">
+                <h2>Your Details</h2>
+                <div class="form-grid">
+                    <div>
+                        <label for="companyName">Company/Your Name:</label>
+                        <input type="text" id="companyName" required>
+                    </div>
+                    <div>
+                        <label for="companyAddress">Address:</label>
+                        <input type="text" id="companyAddress" placeholder="Street, City, Zip, Country">
+                    </div>
+                    <div>
+                        <label for="companyEmail">Email:</label>
+                        <input type="email" id="companyEmail">
+                    </div>
+                    <div>
+                        <label for="companyPhone">Phone:</label>
+                        <input type="tel" id="companyPhone">
+                    </div>
+                    <div class="logo-upload">
+                        <label for="logoUpload">Upload Logo:</label>
+                        <input type="file" id="logoUpload" accept="image/*">
+                        <img id="logoPreview" src="#" alt="Logo Preview" style="display: none; max-height: 60px; margin-top: 10px;">
+                    </div>
+                </div>
+            </section>
+
+            <section class="client-details">
+                <h2>Client Details</h2>
+                 <div class="form-grid">
+                     <div>
+                        <label for="clientName">Client Name:</label>
+                        <input type="text" id="clientName" required>
+                    </div>
+                    <div>
+                        <label for="clientAddress">Client Address:</label>
+                        <input type="text" id="clientAddress" placeholder="Street, City, Zip, Country">
+                    </div>
+                    <div>
+                        <label for="clientEmail">Client Email:</label>
+                        <input type="email" id="clientEmail">
+                    </div>
+                 </div>
+            </section>
+
+            <section class="invoice-meta">
+                <h2>Invoice Details</h2>
+                 <div class="form-grid">
+                    <div>
+                        <label for="invoiceNumber">Invoice #:</label>
+                        <input type="text" id="invoiceNumber" required>
+                    </div>
+                    <div>
+                        <label for="issueDate">Issue Date:</label>
+                        <input type="date" id="issueDate" required>
+                    </div>
+                    <div>
+                        <label for="dueDate">Due Date:</label>
+                        <input type="date" id="dueDate" required>
+                    </div>
+                    <div>
+                         <label for="currency">Currency:</label>
+                         <select id="currency">
+                            <option value="USD" data-symbol="$">USD ($)</option>
+                            <option value="EUR" data-symbol="€">EUR (€)</option>
+                            <option value="GBP" data-symbol="£">GBP (£)</option>
+                            <option value="INR" data-symbol="₹" selected>INR (₹)</option> <!-- Default to INR -->
+                            <option value="JPY" data-symbol="¥">JPY (¥)</option>
+                            <option value="CAD" data-symbol="$">CAD ($)</option>
+                            <option value="AUD" data-symbol="$">AUD ($)</option>
+                            <option value="CHF" data-symbol="CHF">CHF (Fr)</option>
+                         </select>
+                    </div>
+                 </div>
+            </section>
+
+            <section class="invoice-items">
+                <h2>Items</h2>
+                <div style="overflow-x: auto;"> <!-- Wrapper for horizontal scroll -->
+                    <table id="itemTable">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 250px;">Description</th>
+                                <th style="width: 80px;">Qty</th>
+                                <th style="width: 120px;">Unit Price (<span class="currency-symbol">₹</span>)</th>
+                                <th style="width: 80px;">Tax (%)</th>
+                                <th style="width: 130px;">Amount (<span class="currency-symbol">₹</span>)</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemBody">
+                            <!-- Item rows will be added here by JavaScript -->
+                        </tbody>
+                    </table>
+                 </div>
+                 <button type="button" id="addItemBtn"><i class="fas fa-plus"></i> Add Item</button>
+            </section>
+
+             <section class="invoice-summary">
+                <h2>Summary</h2>
+                <div class="summary-grid">
+                    <div>Subtotal:</div> <div><span class="currency-symbol">₹</span><span id="subtotal">0.00</span></div>
+                    <div>Discount (%):</div>
+                    <div><input type="number" id="discountPercent" min="0" max="100" value="0" step="0.01"> <span class="currency-symbol">₹</span><span id="discountAmount">0.00</span></div>
+                    <div>Tax (%):</div>
+                    <div><input type="number" id="taxPercent" min="0" value="0" step="0.01"> <span class="currency-symbol">₹</span><span id="taxAmount">0.00</span></div>
+                    <div>Shipping:</div>
+                    <div><input type="number" id="shipping" min="0" value="0" step="0.01"> <span class="currency-symbol">₹</span><span id="shippingAmount">0.00</span></div>
+                    <div class="total"><span>Total (<span class="currency-symbol">₹</span>):</span> <span><span class="currency-symbol">₹</span><span id="totalAmount">0.00</span></span></div>
+                </div>
+            </section>
+
+             <section class="notes-terms">
+                <h2>Notes / Terms <i class="fas fa-lock" style="color: #f1c40f; font-size: 0.8em;" title="Premium Feature"></i></h2>
+                <textarea id="notes" rows="4" placeholder="e.g., Payment due within 30 days. Bank Details: XYZ Bank, Account: 12345. Thank you! [Saving Notes is a premium feature]"></textarea>
+            </section>
+
+             <section class="actions">
+                <button type="button" id="generatePdfBtn"><i class="fas fa-download"></i> Download PDF</button>
+                 <!-- Add other potential premium buttons here -->
+                 <!-- <button type="button" id="saveInvoiceBtn" title="Premium Feature"><i class="fas fa-save"></i> Save Invoice <i class="fas fa-lock" style="font-size: 0.8em;"></i></button> -->
+                 <button type="reset" id="resetBtn"><i class="fas fa-undo"></i> Reset Form</button>
+             </section>
+        </form>
+
+        <!-- Subscription Button -->
+         <button type="button" id="subscribeBtn"><i class="fas fa-credit-card"></i> Upgrade to Pro (₹199/month)</button>
+    </div>
+
+    <!-- Subscription Modal -->
+    <div id="subscriptionModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" id="modalCloseBtn">&times;</span>
+        <h3>Upgrade to Pro!</h3>
+        <p>Get full access to all features including unlimited PDF downloads, saving invoices (future), and more for just <strong>₹199 per month</strong>.</p>
+        <p>Please pay using UPI to the following VPA:</p>
+        <p><strong><code>8011468810@ubi</code></strong></p>
+        <p>Amount: <strong>₹199.00</strong></p>
+        <p>Scan the QR code with your UPI app:</p>
+        <div id="qrcode"></div>
+        <p style="font-size: 0.8em; color: #666;">(Ensure the amount is ₹199)</p>
+        <button type="button" id="paidConfirmationBtn"><i class="fas fa-check"></i> I Have Paid</button>
+         <p style="font-size: 0.7em; color: red; margin-top: 15px;"><strong>Disclaimer:</strong> This is a demo. Clicking "I Have Paid" only simulates subscription on this page and does not verify actual payment.</p>
+      </div>
+    </div>
+
+
+    <!-- Hidden Div for PDF Generation -->
+    <div id="invoice-preview" style="position: absolute; left: -9999px; top: auto; width: 800px; padding: 40px; background: white; font-family: Arial, sans-serif;">
+        <!-- Dynamic content -->
+    </div>
+
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <!-- QR Code Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <script>
+        // --- JAVASCRIPT LOGIC START ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Previous Element Selectors (keep all from before) ---
+            const currencySelect = document.getElementById('currency');
+            const itemBody = document.getElementById('itemBody');
+            const addItemBtn = document.getElementById('addItemBtn');
+            const subtotalEl = document.getElementById('subtotal');
+            const discountPercentEl = document.getElementById('discountPercent');
+            const discountAmountEl = document.getElementById('discountAmount');
+            const taxPercentEl = document.getElementById('taxPercent');
+            const taxAmountEl = document.getElementById('taxAmount');
+            const shippingEl = document.getElementById('shipping');
+            const shippingAmountEl = document.getElementById('shippingAmount');
+            const totalAmountEl = document.getElementById('totalAmount');
+            const currencySymbolEls = document.querySelectorAll('.currency-symbol');
+            const logoUpload = document.getElementById('logoUpload');
+            const logoPreview = document.getElementById('logoPreview');
+            const generatePdfBtn = document.getElementById('generatePdfBtn');
+            const invoiceForm = document.getElementById('invoice-form');
+            const resetBtn = document.getElementById('resetBtn');
+            const invoicePreviewDiv = document.getElementById('invoice-preview');
+            const notesTextArea = document.getElementById('notes'); // Get notes field
+
+            // --- NEW Elements for Subscription ---
+            const subscribeBtn = document.getElementById('subscribeBtn');
+            const subscriptionModal = document.getElementById('subscriptionModal');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const qrCodeElement = document.getElementById('qrcode');
+            const paidConfirmationBtn = document.getElementById('paidConfirmationBtn');
+            const subscriptionNag = document.getElementById('subscriptionNag');
+            const subscribeLinkBtn = document.getElementById('subscribeLinkBtn');
+
+
+            let logoBase64 = '';
+
+            // --- !!! SIMULATED SUBSCRIPTION STATUS !!! ---
+            // --- !!! THIS IS NOT SECURE - FOR DEMO ONLY !!! ---
+            let isSubscribed = false; // Default to not subscribed
+            // --- !!!                          ---
+
+            const UPI_ID = "8011468810@ubi";
+            const UPI_AMOUNT = "199.00";
+            const MERCHANT_NAME = "InvoiceGeneratorPro"; // Or your name/company
+
+            // --- Utility Functions (Keep formatCurrencyValue, showToast) ---
+             const formatCurrencyValue = (amount) => Number(amount).toFixed(2);
+             const showToast = (message, type = 'success') => { /* ... (keep previous implementation) ... */
+                 Toastify({
+                    text: message, duration: 3000, close: true, gravity: "top", position: "right", stopOnFocus: true,
+                    style: { background: type === 'success' ? "linear-gradient(to right, #00b09b, #96c93d)" : (type === 'error' ? "linear-gradient(to right, #ff5f6d, #ffc371)" : "#4a90e2"), },
+                 }).showToast();
+             };
+
+
+            // --- Event Listeners (Keep all previous listeners) ---
+            currencySelect.addEventListener('change', updateCurrencySymbols);
+            addItemBtn.addEventListener('click', addItemRow);
+            itemBody.addEventListener('input', handleItemInput);
+            itemBody.addEventListener('click', handleItemRemove);
+            discountPercentEl.addEventListener('input', calculateTotals);
+            taxPercentEl.addEventListener('input', calculateTotals);
+            shippingEl.addEventListener('input', calculateTotals);
+            logoUpload.addEventListener('change', handleLogoUpload);
+            generatePdfBtn.addEventListener('click', generatePDF); // Will be modified
+            resetBtn.addEventListener('click', resetForm);
+
+            // --- NEW Listeners for Subscription ---
+            subscribeBtn.addEventListener('click', openSubscriptionModal);
+            subscribeLinkBtn.addEventListener('click', openSubscriptionModal); // Link in nag bar
+            modalCloseBtn.addEventListener('click', closeSubscriptionModal);
+            paidConfirmationBtn.addEventListener('click', simulateSubscription);
+            window.addEventListener('click', (event) => { // Close modal if clicking outside
+                if (event.target == subscriptionModal) {
+                    closeSubscriptionModal();
+                }
+            });
+
+            // --- Core Functions (Keep all previous, modify generatePDF) ---
+
+            function updateCurrencySymbols() { /* ... (keep previous implementation) ... */
+                const selectedOption = currencySelect.options[currencySelect.selectedIndex];
+                const symbol = selectedOption.getAttribute('data-symbol');
+                currencySymbolEls.forEach(span => span.textContent = symbol);
+                document.querySelector('#itemTable th:nth-child(3) .currency-symbol').textContent = symbol;
+                document.querySelector('#itemTable th:nth-child(5) .currency-symbol').textContent = symbol;
+                calculateTotals();
+            }
+
+            function addItemRow() { /* ... (keep previous implementation, ensure symbols are correct) ... */
+                 const selectedOption = currencySelect.options[currencySelect.selectedIndex];
+                 const symbol = selectedOption.getAttribute('data-symbol');
+                 const newRow = document.createElement('tr');
+                 newRow.innerHTML = `<td><input type="text" class="item-description" placeholder="Item description"></td><td><input type="number" class="item-qty" value="1" min="0"></td><td><input type="number" class="item-price" value="0.00" min="0" step="0.01"></td><td><input type="number" class="item-tax" value="0" min="0" max="100" step="0.01"></td><td class="item-amount">${symbol}0.00</td><td class="action-col"><button type="button" class="remove-item-btn" title="Remove Item">&times;</button></td>`;
+                 itemBody.appendChild(newRow);
+                 calculateTotals();
+             }
+            function handleItemInput(event) { /* ... (keep previous implementation) ... */
+                 if (event.target.matches('.item-qty, .item-price, .item-tax')) { calculateTotals(); }
+            }
+            function handleItemRemove(event) { /* ... (keep previous implementation) ... */
+                 if (event.target.classList.contains('remove-item-btn')) { event.target.closest('tr').remove(); calculateTotals(); showToast('Item removed', 'info'); }
+            }
+            function calculateTotals() { /* ... (keep previous implementation, ensure symbols are correct) ... */
+                 const selectedOption = currencySelect.options[currencySelect.selectedIndex];
+                 const symbol = selectedOption.getAttribute('data-symbol');
+                 let subtotal = 0;
+                 itemBody.querySelectorAll('tr').forEach(row => { const qty = parseFloat(row.querySelector('.item-qty').value) || 0; const price = parseFloat(row.querySelector('.item-price').value) || 0; const amount = qty * price; row.querySelector('.item-amount').textContent = symbol + formatCurrencyValue(amount); subtotal += amount; });
+                 subtotalEl.textContent = formatCurrencyValue(subtotal);
+                 const discountPercent = parseFloat(discountPercentEl.value) || 0; const discountAmount = subtotal * (discountPercent / 100); discountAmountEl.textContent = formatCurrencyValue(discountAmount);
+                 const subtotalAfterDiscount = subtotal - discountAmount;
+                 const taxPercent = parseFloat(taxPercentEl.value) || 0; const taxAmount = subtotalAfterDiscount * (taxPercent / 100); taxAmountEl.textContent = formatCurrencyValue(taxAmount);
+                 const shipping = parseFloat(shippingEl.value) || 0; shippingAmountEl.textContent = formatCurrencyValue(shipping);
+                 const totalAmount = subtotalAfterDiscount + taxAmount + shipping; totalAmountEl.textContent = formatCurrencyValue(totalAmount);
+                 // Update summary symbols
+                 document.querySelector('#subtotal').previousElementSibling.textContent = symbol; document.querySelector('#discountAmount').previousElementSibling.textContent = symbol; document.querySelector('#taxAmount').previousElementSibling.textContent = symbol; document.querySelector('#shippingAmount').previousElementSibling.textContent = symbol; document.querySelector('#totalAmount').previousElementSibling.textContent = symbol; document.querySelector('.total > span:first-child > .currency-symbol').textContent = symbol;
+            }
+            function handleLogoUpload(event) { /* ... (keep previous implementation) ... */
+                 const file = event.target.files[0]; if (file && file.type.startsWith('image/')) { const reader = new FileReader(); reader.onload = function(e) { logoBase64 = e.target.result; logoPreview.src = logoBase64; logoPreview.style.display = 'block'; showToast('Logo uploaded successfully'); }; reader.readAsDataURL(file); } else { logoBase64 = ''; logoPreview.src = '#'; logoPreview.style.display = 'none'; if (file) { showToast('Please select a valid image file.', 'error'); } }
+            }
+            function gatherInvoiceData() { /* ... (keep previous implementation) ... */
+                 const selectedOption = currencySelect.options[currencySelect.selectedIndex]; const currency = { code: selectedOption.value, symbol: selectedOption.getAttribute('data-symbol') }; const items = []; itemBody.querySelectorAll('tr').forEach(row => { items.push({ description: row.querySelector('.item-description').value.trim(), qty: parseFloat(row.querySelector('.item-qty').value) || 0, price: parseFloat(row.querySelector('.item-price').value) || 0, tax: parseFloat(row.querySelector('.item-tax').value) || 0, amount: parseFloat(row.querySelector('.item-amount').textContent.replace(currency.symbol, '')) || 0 }); }); const getValue = (id) => document.getElementById(id)?.value.trim() || '';
+                 return { companyName: getValue('companyName'), companyAddress: getValue('companyAddress'), companyEmail: getValue('companyEmail'), companyPhone: getValue('companyPhone'), logo: logoBase64, clientName: getValue('clientName'), clientAddress: getValue('clientAddress'), clientEmail: getValue('clientEmail'), invoiceNumber: getValue('invoiceNumber'), issueDate: getValue('issueDate'), dueDate: getValue('dueDate'), currency: currency, items: items, subtotal: parseFloat(subtotalEl.textContent) || 0, discountPercent: parseFloat(discountPercentEl.value) || 0, discountAmount: parseFloat(discountAmountEl.textContent) || 0, taxPercent: parseFloat(taxPercentEl.value) || 0, taxAmount: parseFloat(taxAmountEl.textContent) || 0, shipping: parseFloat(shippingEl.value) || 0, totalAmount: parseFloat(totalAmountEl.textContent) || 0, notes: getValue('notes'), };
+             }
+            function populatePreview(data) { /* ... (keep previous implementation, ensure symbols are correct) ... */
+                 invoicePreviewDiv.innerHTML = ''; const previewFormatCurrency = (amount, symbol) => `${symbol}${formatCurrencyValue(amount)}`; let itemsHtml = ''; data.items.forEach(item => { const sanitizedDescription = item.description.replace(/</g, "&lt;").replace(/>/g, "&gt;"); itemsHtml += `<tr><td>${sanitizedDescription}</td><td>${item.qty}</td><td>${previewFormatCurrency(item.price, data.currency.symbol)}</td><td>${item.tax}%</td><td>${previewFormatCurrency(item.amount, data.currency.symbol)}</td></tr>`; }); const formatAddress = (address) => address ? address.replace(/,\s*/g, '<br>') : '';
+                 const previewHtml = `<div class="preview-header"><div class="preview-logo">${data.logo ? `<img src="${data.logo}" alt="Company Logo">` : `<h2>${data.companyName.replace(/</g, "&lt;")}</h2>`}</div><div class="preview-company-details">${!data.logo ? '' : `<h3>${data.companyName.replace(/</g, "&lt;")}</h3>`}<p>${formatAddress(data.companyAddress.replace(/</g, "&lt;"))}</p><p>${data.companyEmail.replace(/</g, "&lt;") || ''}</p><p>${data.companyPhone.replace(/</g, "&lt;") || ''}</p></div></div><h2>INVOICE</h2><div class="preview-meta-details"><div><strong>Billed To:</strong><br>${data.clientName.replace(/</g, "&lt;")}<br>${formatAddress(data.clientAddress.replace(/</g, "&lt;"))}<br>${data.clientEmail.replace(/</g, "&lt;") || ''}</div><div><strong>Invoice Number:</strong> ${data.invoiceNumber.replace(/</g, "&lt;")}<br><strong>Issue Date:</strong> ${data.issueDate}<br><strong>Due Date:</strong> ${data.dueDate}<br></div></div><h3>Items</h3><table><thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Tax %</th><th>Amount</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="preview-summary"><div><span>Subtotal:</span> <span>${previewFormatCurrency(data.subtotal, data.currency.symbol)}</span></div>${data.discountAmount > 0 ? `<div><span>Discount (${data.discountPercent}%):</span> <span>-${previewFormatCurrency(data.discountAmount, data.currency.symbol)}</span></div>` : ''}${data.taxAmount > 0 ? `<div><span>Tax (${data.taxPercent}%):</span> <span>${previewFormatCurrency(data.taxAmount, data.currency.symbol)}</span></div>` : ''}${data.shipping > 0 ? `<div><span>Shipping:</span> <span>${previewFormatCurrency(data.shipping, data.currency.symbol)}</span></div>` : ''}<div class="summary-total"><span>Total (${data.currency.symbol}):</span> <span>${previewFormatCurrency(data.totalAmount, data.currency.symbol)}</span></div></div>${data.notes ? `<div class="preview-notes"><strong>Notes / Terms:</strong><br>${data.notes.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>` : ''}`;
+                 invoicePreviewDiv.innerHTML = previewHtml;
+            }
+            function resetForm() { /* ... (keep previous implementation) ... */
+                 document.getElementById('companyName').value = ''; document.getElementById('companyAddress').value = ''; document.getElementById('companyEmail').value = ''; document.getElementById('companyPhone').value = ''; document.getElementById('clientName').value = ''; document.getElementById('clientAddress').value = ''; document.getElementById('clientEmail').value = ''; document.getElementById('invoiceNumber').value = ''; document.getElementById('notes').value = ''; document.getElementById('discountPercent').value = '0'; document.getElementById('taxPercent').value = '0'; document.getElementById('shipping').value = '0';
+                 logoUpload.value = ''; logoPreview.style.display = 'none'; logoPreview.src = '#'; logoBase64 = '';
+                 itemBody.innerHTML = '';
+                 setDefaultDates(); addItemRow();
+                 currencySelect.value = 'INR'; // Default to INR
+                 updateCurrencySymbols();
+                 document.querySelectorAll('#invoice-form input, #invoice-form textarea').forEach(el => el.style.borderColor = '');
+                 // Don't reset subscription status on form reset
+                 // showToast('Form reset', 'info'); // Avoid toast on reset
+            }
+            function setDefaultDates() { /* ... (keep previous implementation) ... */
+                 const today = new Date(); document.getElementById('issueDate').valueAsDate = today; const dueDate = new Date(); dueDate.setDate(today.getDate() + 30); document.getElementById('dueDate').valueAsDate = dueDate;
+             }
+
+
+            // --- MODIFIED: generatePDF to check subscription ---
+            function generatePDF() {
+                // --- !!! INSECURE CHECK !!! ---
+                if (!isSubscribed) {
+                    showToast('Please subscribe to download PDF invoices.', 'error');
+                    openSubscriptionModal(); // Show the modal
+                    return; // Stop PDF generation
+                }
+                // --- !!! ---
+
+                // --- Rest of the validation and PDF generation logic (keep as before) ---
+                 let isValid = true; const requiredFields = ['companyName', 'clientName', 'invoiceNumber', 'issueDate', 'dueDate']; requiredFields.forEach(id => { const field = document.getElementById(id); if (!field.value) { showToast(`Please fill in the '${field.previousElementSibling.textContent.replace(':','')} field.`, 'error'); field.style.borderColor = 'red'; isValid = false; } else { field.style.borderColor = ''; } }); if (itemBody.rows.length === 0) { showToast('Please add at least one item to the invoice.', 'error'); isValid = false; } else { itemBody.querySelectorAll('tr').forEach(row => { const descriptionInput = row.querySelector('.item-description'); if(!descriptionInput.value) { showToast(`Please add a description for all items.`, 'error'); descriptionInput.style.borderColor = 'red'; isValid = false; } else { descriptionInput.style.borderColor = ''; } }); }
+                 if (!isValid) return;
+
+                 showToast('Generating PDF...', 'info');
+                 const data = gatherInvoiceData();
+                 populatePreview(data);
+
+                 const { jsPDF } = window.jspdf;
+                 const { html2canvas } = window;
+
+                 html2canvas(invoicePreviewDiv, { scale: 2.5, useCORS: true, logging: false })
+                    .then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                        const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasWidth = canvas.width; const canvasHeight = canvas.height;
+                        const ratio = pdfWidth / canvasWidth; const imgWidth = pdfWidth; const imgHeight = canvasHeight * ratio;
+                        if (imgHeight > pdfHeight) { console.warn("Invoice content might be too long for a single page."); pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pdfHeight); } else { pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight); }
+                        const fileName = `Invoice-${data.invoiceNumber || 'Draft'}.pdf`;
+                        pdf.save(fileName);
+                        showToast('PDF Generated Successfully!');
+                    }).catch(error => {
+                        console.error("Error generating PDF with html2canvas:", error);
+                        showToast('Error generating PDF. Check console for details.', 'error');
+                    });
+            }
+
+            // --- NEW Subscription Functions ---
+            function openSubscriptionModal() {
+                generateQrCode();
+                subscriptionModal.style.display = "block";
+            }
+
+            function closeSubscriptionModal() {
+                subscriptionModal.style.display = "none";
+                 qrCodeElement.innerHTML = ''; // Clear QR code when closing
+            }
+
+            function generateQrCode() {
+                 qrCodeElement.innerHTML = ''; // Clear previous QR code
+                 // UPI Intent URL Structure: upi://pay?pa=<UPI_ID>&pn=<MERCHANT_NAME>&am=<AMOUNT>&cu=INR&tn=<TRANSACTION_NOTE>
+                 // IMPORTANT: Transaction Note (tn) should ideally be unique per transaction for tracking on a REAL backend. Here, it's static.
+                 const transactionNote = "InvoiceGeneratorProSubscription";
+                 const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${UPI_AMOUNT}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+
+                 try {
+                     new QRCode(qrCodeElement, {
+                         text: upiUrl,
+                         width: 190, // Size inside the padded div
+                         height: 190,
+                         colorDark : "#000000",
+                         colorLight : "#ffffff",
+                         correctLevel : QRCode.CorrectLevel.M // Medium correction level
+                     });
+                 } catch (error) {
+                     console.error("Error generating QR Code:", error);
+                     qrCodeElement.innerHTML = "Could not generate QR code.";
+                     showToast("Error generating QR Code.", "error");
+                 }
+            }
+
+            function simulateSubscription() {
+                 // --- !!! INSECURE SIMULATION !!! ---
+                 isSubscribed = true;
+                 // --- !!! ---
+
+                 showToast('Thank you! Subscription simulated.', 'success');
+                 closeSubscriptionModal();
+                 updateSubscriptionUI(); // Update UI to reflect "subscribed" state
+            }
+
+             function updateSubscriptionUI() {
+                 if (isSubscribed) {
+                     subscriptionNag.style.display = 'none'; // Hide nag bar
+                     subscribeBtn.style.display = 'none'; // Hide upgrade button
+                     // Maybe enable/disable other premium feature indicators/buttons here
+                     notesTextArea.disabled = false; // Example: Enable notes field
+                     notesTextArea.placeholder = "Enter notes or terms here...";
+                 } else {
+                     subscriptionNag.style.display = 'block'; // Show nag bar
+                     subscribeBtn.style.display = 'block'; // Show upgrade button
+                     // Disable premium features
+                      notesTextArea.disabled = true;
+                      notesTextArea.placeholder = "Upgrade to Pro to add notes...";
+
+                 }
+             }
+
+
+            // --- Initial Setup ---
+            setDefaultDates();
+            addItemRow();
+            currencySelect.value = 'INR'; // Default to INR
+            updateCurrencySymbols();
+            updateSubscriptionUI(); // Set initial UI based on default (unsubscribed) state
+
+        });
+        // --- JAVASCRIPT LOGIC END ---
+    </script>
+
+</body>
+</html>
